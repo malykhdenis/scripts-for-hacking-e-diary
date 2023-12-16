@@ -6,7 +6,7 @@ from datacenter.models import (Schoolkid, Lesson, Mark, Chastisement,
                                Commendation)
 
 
-def fix_marks(schoolkid):
+def fix_marks(schoolkid: Schoolkid) -> None:
     """Fix all bad marks for schoolkid."""
     wanted_mark = 5
     bad_marks = Mark.objects.filter(schoolkid=schoolkid).filter(points__lt=4)
@@ -15,12 +15,12 @@ def fix_marks(schoolkid):
         mark.save()
 
 
-def remove_chastisements(schoolkid):
+def remove_chastisements(schoolkid: Schoolkid) -> None:
     """Delete all chastisiments for schoolkid."""
     Chastisement.objects.filter(schoolkid=schoolkid).delete()
 
 
-def create_commendation(schoolkid, subject):
+def create_commendation(schoolkid: str, subject: str) -> None:
     """Create a commendation for schoolkid for defined subject."""
     commendation_choices = [
         'Молодец!',
