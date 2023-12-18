@@ -1,52 +1,71 @@
 import random
-
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from typing import Optional
 
 from datacenter.models import (Schoolkid, Lesson, Mark, Chastisement,
                                Commendation)
 
-
-def fix_marks(schoolkid: Schoolkid) -> None:
-    """Fix all bad marks for schoolkid."""
-    wanted_mark = 5
-    bad_marks = Mark.objects.filter(schoolkid=schoolkid).filter(points__lt=4)
-    for mark in bad_marks:
-        mark.points = wanted_mark
-        mark.save()
-
-
-def remove_chastisements(schoolkid: Schoolkid) -> None:
-    """Delete all chastisiments for schoolkid."""
-    Chastisement.objects.filter(schoolkid=schoolkid).delete()
-
-
-def create_commendation(schoolkid: str, subject: str) -> None:
-    """Create a commendation for schoolkid for defined subject."""
-    commendation_choices = [
+COMMENDATION_CHOICES = [
         'Молодец!',
         'Отлично!',
         'Хорошо!',
         'Гораздо лучше, чем я ожидал!',
         'Ты меня приятно удивил!',
-    ]
+]
+
+
+def fix_marks(schoolkid_name: str) -> None:
+    """Fix all bad marks for schoolkid."""
+    wanted_mark = 5
+    if not check_schoolkid(schoolkid_name):
+        return
+    Mark.objects.filter(
+        schoolkid__full_name__contains=schoolkid_name,
+        points__lt=4
+    ).select_related('schoolkid').update(points=wanted_mark)
+
+
+def remove_chastisements(schoolkid_name: str) -> None:
+    """Delete all chastisiments for schoolkid."""
+    if not check_schoolkid(schoolkid_name):
+        return
+    Chastisement.objects.filter(
+        schoolkid__full_name__contains=schoolkid_name).delete()
+
+
+def create_commendation(schoolkid_name: str, subject: str) -> None:
+    """Create a commendation for schoolkid for defined subject."""
+    schoolkid = check_schoolkid(schoolkid_name)
+    if not check_schoolkid(schoolkid_name):
+        return
     try:
-        schoolkid = Schoolkid.objects.get(full_name__contains=schoolkid)
-    except ObjectDoesNotExist:
-        print(f'{schoolkid} - нет такого ученика.')
-    except MultipleObjectsReturned:
-        print('Найдено несколько учеников с таким именем.')
-    else:
         last_lesson = (
-            Lesson.objects
-            .filter(year_of_study=schoolkid.year_of_study)
-            .filter(group_letter=schoolkid.group_letter)
-            .filter(subject__title=subject)
-            .order_by('date').last()
+            Lesson.objects.filter(
+                year_of_study=schoolkid.year_of_study,
+                group_letter=schoolkid.group_letter,
+                subject__title=subject
+            ).order_by('date').last()
         )
+    except Lesson.DoesNotExist:
+        print('Не удалось найти урок.')
+    else:
         Commendation.objects.create(
-            text=random.choice(commendation_choices),
+            text=random.choice(COMMENDATION_CHOICES),
             created=last_lesson.date,
             schoolkid=schoolkid,
             subject=last_lesson.subject,
             teacher=last_lesson.teacher
         )
+
+
+def check_schoolkid(schoolkid_name: str) -> Optional[Schoolkid]:
+    """Checking existing of single schoolkid."""
+    try:
+        schoolkid = Schoolkid.objects.get(full_name__contains=schoolkid_name)
+    except Schoolkid.DoesNotExist:
+        print('Ученик не найден.')
+        return False
+    except Schoolkid.MultipleObjectsReturned:
+        print('Найдено несколько учеников с таким именем.')
+        return False
+    else:
+        return schoolkid
