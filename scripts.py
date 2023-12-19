@@ -35,26 +35,25 @@ def remove_chastisements(schoolkid_name: str) -> None:
 def create_commendation(schoolkid_name: str, subject: str) -> None:
     """Create a commendation for schoolkid for defined subject."""
     schoolkid = check_schoolkid(schoolkid_name)
-    if not check_schoolkid(schoolkid_name):
+    if not schoolkid:
         return
-    try:
-        last_lesson = (
-            Lesson.objects.filter(
-                year_of_study=schoolkid.year_of_study,
-                group_letter=schoolkid.group_letter,
-                subject__title=subject
-            ).order_by('date').last()
-        )
-    except Lesson.DoesNotExist:
+    last_lesson = (
+        Lesson.objects.filter(
+            year_of_study=schoolkid.year_of_study,
+            group_letter=schoolkid.group_letter,
+            subject__title=subject
+        ).order_by('date').last()
+    )
+    if not last_lesson:
         print('Не удалось найти урок.')
-    else:
-        Commendation.objects.create(
-            text=random.choice(COMMENDATION_CHOICES),
-            created=last_lesson.date,
-            schoolkid=schoolkid,
-            subject=last_lesson.subject,
-            teacher=last_lesson.teacher
-        )
+        return
+    Commendation.objects.create(
+        text=random.choice(COMMENDATION_CHOICES),
+        created=last_lesson.date,
+        schoolkid=schoolkid,
+        subject=last_lesson.subject,
+        teacher=last_lesson.teacher
+    )
 
 
 def check_schoolkid(schoolkid_name: str) -> Optional[Schoolkid]:
