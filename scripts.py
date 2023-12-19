@@ -21,7 +21,7 @@ def fix_marks(schoolkid_name: str) -> None:
     Mark.objects.filter(
         schoolkid__full_name__contains=schoolkid_name,
         points__lt=4
-    ).select_related('schoolkid').update(points=wanted_mark)
+    ).update(points=wanted_mark)
 
 
 def remove_chastisements(schoolkid_name: str) -> None:
